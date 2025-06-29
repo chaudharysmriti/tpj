@@ -564,17 +564,17 @@
       <div class="team-grid">
         <div class="team-member">
           <img src="https://randomuser.me/api/portraits/women/44.jpg" alt="Team Member">
-          <h4>Sarah Johnson</h4>
+          <h4>Prashant Joshi</h4>
           <p>Lead Developer</p>
         </div>
         <div class="team-member">
           <img src="https://randomuser.me/api/portraits/men/32.jpg" alt="Team Member">
-          <h4>Michael Chen</h4>
+          <h4>Kushal Sapkota</h4>
           <p>Hardware Engineer</p>
         </div>
         <div class="team-member">
           <img src="https://randomuser.me/api/portraits/women/68.jpg" alt="Team Member">
-          <h4>Emma Rodriguez</h4>
+          <h4>Smriti Chaudhary</h4>
           <p>UI/UX Designer</p>
         </div>
       </div>
@@ -617,61 +617,17 @@
     </div>
   </footer>
 
+  
   <script>
-    // Navigation function
-    function showSection(id) {
-      document.querySelectorAll("section").forEach(s => s.classList.remove("active"));
-      document.getElementById(id).classList.add("active");
-      
-      // Update active nav link
-      document.querySelectorAll("nav a").forEach(a => a.classList.remove("active"));
-      event.currentTarget.classList.add("active");
-    }
-    
-    // Door control functions
-    function openDoor() {
-      fetch('/open-door').then(() => alert('🚪 Door opened'));
-    }
-    
-    function closeDoor() {
-      fetch('/close-door').then(() => alert('🔒 Door closed'));
-    }
-    
-    // Fetch logs function
-    function fetchLogs() {
-      fetch('/logs.js')
-        .then(response => response.text())
-        .then(js => {
-          eval(js);  // Update logs on page
-        })
-        .catch(console.error);
-    }
-    
-    // Form submission
-    document.querySelector('form')?.addEventListener('submit', function(e) {
-      e.preventDefault();
-      alert('Thank you for your message! We will contact you soon.');
-      this.reset();
-    });
-    
-    // Initialize
-    setInterval(fetchLogs, 3000);
-    window.onload = fetchLogs;
-  </script>
-  <script>
-  const espIP = 'http://172.20.10.9'; // 🔁 Replace with your ESP32-S3's IP
+  const espIP = 'http://172.20.10.9';
 
-  // Navigation function
   function showSection(id) {
     document.querySelectorAll("section").forEach(s => s.classList.remove("active"));
     document.getElementById(id).classList.add("active");
-
-    // Update active nav link
     document.querySelectorAll("nav a").forEach(a => a.classList.remove("active"));
     event.currentTarget.classList.add("active");
   }
 
-  // Door control functions
   function openDoor() {
     fetch(`${espIP}/open-door`)
       .then(res => res.ok ? alert('🚪 Door opened') : alert('❌ Failed to open'))
@@ -684,25 +640,30 @@
       .catch(() => alert('⚠️ ESP not reachable'));
   }
 
-  // Fetch logs from ESP
   function fetchLogs() {
-    fetch(`${espIP}/logs.js`)
-      .then(response => response.text())
-      .then(js => eval(js))
-      .catch(() => console.warn('Failed to fetch logs'));
-  }
+  fetch(`${espIP}/logs.js`)
+    .then(response => response.text())
+    .then(js => {
+      if (document.getElementById('logList') && document.getElementById('intruderList')) {
+        eval(js); // Only runs logs.js if required elements are loaded
+      }
+    })
+    .catch(err => console.warn('❌ Failed to fetch logs:', err));
+}
 
-  // Form submission
+
   document.querySelector('form')?.addEventListener('submit', function(e) {
     e.preventDefault();
     alert('Thank you for your message! We will contact you soon.');
     this.reset();
   });
 
-  // Start fetching logs on load
-  window.onload = fetchLogs;
-  setInterval(fetchLogs, 5000);
+  window.onload = () => {
+    fetchLogs();
+    setInterval(fetchLogs, 5000);
+  };
 </script>
+
 
 </body>
 </html>
