@@ -4,6 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>🔐 Smart Door Dashboard</title>
+   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
@@ -619,51 +621,62 @@
 
   
   <script>
-  const espIP = 'http://172.20.10.9';
+   // Initialize Firebase
+const firebaseConfig = {
+  apiKey: "AIzaSyC_SVU9ICYz5UQ0I4MoDKDFfu8bbMIWct0",
+  authDomain: "smart-door-3e8cc.firebaseapp.com",
+  databaseURL: "https://smart-door-3e8cc-default-rtdb.firebaseio.com",
+  projectId: "smart-door-3e8cc",
+  storageBucket: "smart-door-3e8cc.appspot.com",
+  messagingSenderId: "306404588739",
+  appId: "1:306404588739:web:94170ac04fa8560e4b3676"
+};
 
-  function showSection(id) {
-    document.querySelectorAll("section").forEach(s => s.classList.remove("active"));
-    document.getElementById(id).classList.add("active");
-    document.querySelectorAll("nav a").forEach(a => a.classList.remove("active"));
-    event.currentTarget.classList.add("active");
-  }
-
-  function openDoor() {
-    fetch(`${espIP}/open-door`)
-      .then(res => res.ok ? alert('🚪 Door opened') : alert('❌ Failed to open'))
-      .catch(() => alert('⚠️ ESP not reachable'));
-  }
-
-  function closeDoor() {
-    fetch(`${espIP}/close-door`)
-      .then(res => res.ok ? alert('🔒 Door closed') : alert('❌ Failed to close'))
-      .catch(() => alert('⚠️ ESP not reachable'));
-  }
-
-  function fetchLogs() {
-  fetch(`${espIP}/logs.js`)
-    .then(response => response.text())
-    .then(js => {
-      if (document.getElementById('logList') && document.getElementById('intruderList')) {
-        eval(js); // Only runs logs.js if required elements are loaded
-      }
-    })
-    .catch(err => console.warn('❌ Failed to fetch logs:', err));
-}
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
 
 
-  document.querySelector('form')?.addEventListener('submit', function(e) {
-    e.preventDefault();
-    alert('Thank you for your message! We will contact you soon.');
-    this.reset();
-  });
+    function showSection(id) {
+      document.querySelectorAll("section").forEach(s => s.classList.remove("active"));
+      document.getElementById(id).classList.add("active");
+      document.querySelectorAll("nav a").forEach(a => a.classList.remove("active"));
+      event.currentTarget.classList.add("active");
+    }
 
-  window.onload = () => {
-    fetchLogs();
-    setInterval(fetchLogs, 5000);
-  };
-</script>
+    function openDoor() {
+      alert("Open door via Firebase not implemented yet.");
+    }
 
+    function closeDoor() {
+      alert("Close door via Firebase not implemented yet.");
+    }
+
+    function fetchFirebaseLogs() {
+      db.ref("logs").on("value", snapshot => {
+        const logs = snapshot.val();
+        let logListHTML = "";
+        let intruderHTML = "";
+
+        for (let key in logs) {
+          const log = logs[key].log;
+          const itemHTML = `<li>${log}</li>`;
+          logListHTML += itemHTML;
+          if (log.includes("Denied")) intruderHTML += itemHTML;
+        }
+
+        document.getElementById("logList").innerHTML = logListHTML;
+        document.getElementById("intruderList").innerHTML = intruderHTML;
+      });
+    }
+
+    document.querySelector('form')?.addEventListener('submit', function(e) {
+      e.preventDefault();
+      alert('Thank you for your message! We will contact you soon.');
+      this.reset();
+    });
+
+    window.onload = fetchFirebaseLogs;
+  </script>
 
 </body>
 </html>
