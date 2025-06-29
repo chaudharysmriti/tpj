@@ -658,5 +658,51 @@
     setInterval(fetchLogs, 3000);
     window.onload = fetchLogs;
   </script>
+  <script>
+  const espIP = 'http://172.20.10.9'; // 🔁 Replace with your ESP32-S3's IP
+
+  // Navigation function
+  function showSection(id) {
+    document.querySelectorAll("section").forEach(s => s.classList.remove("active"));
+    document.getElementById(id).classList.add("active");
+
+    // Update active nav link
+    document.querySelectorAll("nav a").forEach(a => a.classList.remove("active"));
+    event.currentTarget.classList.add("active");
+  }
+
+  // Door control functions
+  function openDoor() {
+    fetch(`${espIP}/open-door`)
+      .then(res => res.ok ? alert('🚪 Door opened') : alert('❌ Failed to open'))
+      .catch(() => alert('⚠️ ESP not reachable'));
+  }
+
+  function closeDoor() {
+    fetch(`${espIP}/close-door`)
+      .then(res => res.ok ? alert('🔒 Door closed') : alert('❌ Failed to close'))
+      .catch(() => alert('⚠️ ESP not reachable'));
+  }
+
+  // Fetch logs from ESP
+  function fetchLogs() {
+    fetch(`${espIP}/logs.js`)
+      .then(response => response.text())
+      .then(js => eval(js))
+      .catch(() => console.warn('Failed to fetch logs'));
+  }
+
+  // Form submission
+  document.querySelector('form')?.addEventListener('submit', function(e) {
+    e.preventDefault();
+    alert('Thank you for your message! We will contact you soon.');
+    this.reset();
+  });
+
+  // Start fetching logs on load
+  window.onload = fetchLogs;
+  setInterval(fetchLogs, 5000);
+</script>
+
 </body>
 </html>
