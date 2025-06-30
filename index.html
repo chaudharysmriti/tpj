@@ -644,12 +644,15 @@ const db = firebase.database();
     }
 
     function openDoor() {
-      alert("Open door via Firebase not implemented yet.");
-    }
+  db.ref("commands").set({ state: "open" });
+  alert("🚪 Open command sent to door!");
+}
 
-    function closeDoor() {
-      alert("Close door via Firebase not implemented yet.");
-    }
+function closeDoor() {
+  db.ref("commands").set({ state: "close" });
+  alert("🔒 Close command sent to door!");
+}
+
 
     function fetchFirebaseLogs() {
       db.ref("logs").on("value", snapshot => {
