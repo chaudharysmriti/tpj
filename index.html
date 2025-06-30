@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -636,19 +637,21 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
 
-    function showSection(id) {
+     function showSection(id, event) {
       document.querySelectorAll("section").forEach(s => s.classList.remove("active"));
       document.getElementById(id).classList.add("active");
       document.querySelectorAll("nav a").forEach(a => a.classList.remove("active"));
-      event.currentTarget.classList.add("active");
+      if (event) event.currentTarget.classList.add("active");
     }
 
     function openDoor() {
-      alert("Open door via Firebase not implemented yet.");
+      db.ref("commands").set({ state: "open" });
+      alert("🚪 Open command sent to door!");
     }
 
     function closeDoor() {
-      alert("Close door via Firebase not implemented yet.");
+      db.ref("commands").set({ state: "close" });
+      alert("🔒 Close command sent to door!");
     }
 
     function fetchFirebaseLogs() {
@@ -659,7 +662,9 @@ const db = firebase.database();
 
         for (let key in logs) {
           const log = logs[key].log;
-          const itemHTML = <li>${log}</li>;
+          const timestamp = logs[key].timestamp || Date.now();
+          const torontoTime = new Date(timestamp - (4 * 60 * 60 * 1000)).toLocaleString("en-CA", { timeZone: "America/Toronto" });
+          const itemHTML = `<li>${log}<br><small>${torontoTime}</small></li>`;
           logListHTML += itemHTML;
           if (log.includes("Denied")) intruderHTML += itemHTML;
         }
