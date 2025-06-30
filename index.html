@@ -655,22 +655,44 @@ function closeDoor() {
 
 
     function fetchFirebaseLogs() {
-      db.ref("logs").on("value", snapshot => {
-        const logs = snapshot.val();
-        let logListHTML = "";
-        let intruderHTML = "";
+    db.ref("logs").on("value", snapshot => {
+      const logs = snapshot.val();
+      let logListHTML = "";
+      let intruderHTML = "";
 
-        for (let key in logs) {
-          const log = logs[key].log;
-          const itemHTML = `<li>${log}</li>`;
-          logListHTML += itemHTML;
-          if (log.includes("Denied")) intruderHTML += itemHTML;
-        }
-
-        document.getElementById("logList").innerHTML = logListHTML;
-        document.getElementById("intruderList").innerHTML = intruderHTML;
+      const torontoFormatter = new Intl.DateTimeFormat("en-CA", {
+        timeZone: "America/Toronto",
+        year: "numeric",
+        month: "short",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: false
       });
-    }
+
+      if (logs) {
+        const sortedKeys = Object.keys(logs).sort((a, b) => b - a); // Reverse-chronological
+
+        for (let key of sortedKeys) {
+          const entry = logs[key];
+          const log = entry.log || "";
+          const timestamp = torontoFormatter.format(new Date(Number(key)));
+
+          const logItem = `<li><i class="fas fa-circle-check" style="color:green;"></i> ${log} <small style="color:#888;">(${timestamp})</small></li>`;
+          logListHTML += logItem;
+
+          if (log.toLowerCase().includes("denied")) {
+            const intruderItem = `<li><i class="fas fa-triangle-exclamation" style="color:red;"></i> ${log} <small style="color:#888;">(${timestamp})</small></li>`;
+            intruderHTML += intruderItem;
+          }
+        }
+      }
+
+      document.getElementById("logList").innerHTML = logListHTML;
+      document.getElementById("intruderList").innerHTML = intruderHTML;
+    });
+  }
 
     document.querySelector('form')?.addEventListener('submit', function(e) {
       e.preventDefault();
