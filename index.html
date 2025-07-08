@@ -1,374 +1,704 @@
-#include <Arduino.h>
-#include <Wire.h>
-#include <WiFi.h>
-#include <WebServer.h>
-#include <Adafruit_GFX.h>
-#include <Adafruit_SSD1306.h>
-#include <Adafruit_Fingerprint.h>
-#include <HardwareSerial.h>
-#include <HTTPClient.h>
-#include <time.h>
-#include <Base64.h>
-#include "FS.h"
-#include "SPIFFS.h"
-#include "esp_camera.h"
 
-// OLED config
-#define SCREEN_WIDTH 128
-#define SCREEN_HEIGHT 64
-#define OLED_RESET -1
-#define SCREEN_ADDRESS 0x3C
-Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🔐 Smart Door Dashboard</title>
+   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root {
+      --primary: #6C63FF;
+      --secondary: #FF6584;
+      --success: #4CC9F0;
+      --danger: #F72585;
+      --dark: #2B2D42;
+      --light: #F8F9FA;
+      --gray: #ADB5BD;
+    }
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #F5F7FF url('https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80') no-repeat center center fixed;
+      background-size: cover;
+      color: var(--dark);
+      min-height: 100vh;
+      position: relative;
+    }
+    
+    body::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(245, 247, 255, 0.85);
+      z-index: -1;
+    }
+    
+    header {
+      background: white;
+      padding: 1.5rem;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    header h1 {
+      color: var(--primary);
+      font-size: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    nav {
+      display: flex;
+      gap: 1.5rem;
+    }
+    
+    nav a {
+      color: var(--dark);
+      text-decoration: none;
+      font-weight: 500;
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      transition: all 0.3s ease;
+    }
+    
+    nav a:hover {
+      background: rgba(108, 99, 255, 0.1);
+      color: var(--primary);
+    }
+    
+    nav a.active {
+      background: rgba(108, 99, 255, 0.1);
+      color: var(--primary);
+    }
+    
+    section {
+      max-width: 1200px;
+      margin: 2rem auto;
+      padding: 0 1.5rem;
+      display: none;
+    }
+    
+    section.active {
+      display: block;
+      animation: fadeIn 0.5s ease;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    /* Home Section Styles */
+    .hero {
+      text-align: center;
+      padding: 4rem 0;
+    }
+    
+    .hero h2 {
+      font-size: 3rem;
+      color: var(--primary);
+      margin-bottom: 1rem;
+      text-shadow: 1px 1px 3px rgba(0,0,0,0.1);
+    }
+    
+    .hero .slogan {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: var(--dark);
+      margin-bottom: 1.5rem;
+      background: rgba(255,255,255,0.7);
+      display: inline-block;
+      padding: 0.5rem 1.5rem;
+      border-radius: 30px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+    
+    .hero p {
+      color: var(--dark);
+      font-size: 1.1rem;
+      max-width: 700px;
+      margin: 0 auto 2rem;
+      background: rgba(255,255,255,0.7);
+      padding: 1rem;
+      border-radius: 8px;
+    }
+    
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 1.5rem;
+      margin-top: 2rem;
+    }
+    
+    .dashboard-card {
+      background: white;
+      border-radius: 12px;
+      padding: 1.5rem;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+      transition: all 0.3s ease;
+      backdrop-filter: blur(5px);
+      background: rgba(255,255,255,0.8);
+    }
+    
+    .dashboard-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    }
+    
+    .card-header {
+      display: flex;
+      align-items: center;
+      margin-bottom: 1rem;
+      color: var(--primary);
+    }
+    
+    .card-header i {
+      font-size: 1.5rem;
+      margin-right: 0.75rem;
+    }
+    
+    .card-image {
+      width: 100%;
+      height: 180px;
+      object-fit: cover;
+      border-radius: 8px;
+      margin-bottom: 1rem;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+    
+    .stats-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 1.5rem;
+      margin: 3rem 0;
+    }
+    
+    .stat-item {
+      background: rgba(255,255,255,0.8);
+      padding: 1.5rem;
+      border-radius: 12px;
+      text-align: center;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+      transition: all 0.3s ease;
+      backdrop-filter: blur(5px);
+    }
+    
+    .stat-item:hover {
+      transform: translateY(-3px);
+    }
+    
+    .stat-value {
+      font-size: 2rem;
+      font-weight: 600;
+      color: var(--primary);
+      margin-bottom: 0.5rem;
+    }
+    
+    .stat-label {
+      color: var(--dark);
+      font-size: 0.9rem;
+      font-weight: 500;
+    }
+    
+    /* About Section Styles */
+    .about-content {
+      background: rgba(255,255,255,0.8);
+      padding: 2rem;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    }
+    
+    .about-content h2 {
+      color: var(--primary);
+      margin-bottom: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    
+    .team-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 2rem;
+      margin-top: 2rem;
+    }
+    
+    .team-member {
+      background: white;
+      padding: 1.5rem;
+      border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      text-align: center;
+    }
+    
+    .team-member img {
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      object-fit: cover;
+      margin-bottom: 1rem;
+      border: 3px solid var(--primary);
+    }
+    
+    /* Contact Section Styles */
+    .contact-form {
+      background: rgba(255,255,255,0.8);
+      padding: 2rem;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+      max-width: 600px;
+      margin: 0 auto;
+    }
+    
+    .form-group {
+      margin-bottom: 1.5rem;
+    }
+    
+    .form-group label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: 500;
+      color: var(--dark);
+    }
+    
+    .form-group input,
+    .form-group textarea {
+      width: 100%;
+      padding: 0.75rem;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-family: 'Inter', sans-serif;
+    }
+    
+    .form-group textarea {
+      min-height: 150px;
+    }
+    
+    .submit-btn {
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 0.75rem 1.5rem;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    
+    .submit-btn:hover {
+      background: var(--secondary);
+    }
+    
+    /* Control Section Styles */
+    .control-section {
+      background: rgba(255,255,255,0.8);
+      padding: 2rem;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+      max-width: 500px;
+      margin: 2rem auto;
+      text-align: center;
+      backdrop-filter: blur(5px);
+    }
+    
+    .control-section h2 {
+      color: var(--primary);
+      margin-bottom: 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.75rem;
+    }
+    
+    .control-button {
+      border: none;
+      padding: 1rem 2rem;
+      font-size: 1rem;
+      font-weight: 600;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin: 0.5rem;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+    
+    .control-button.open {
+      background: var(--success);
+      color: white;
+    }
+    
+    .control-button.close {
+      background: var(--danger);
+      color: white;
+    }
+    
+    .control-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 15px rgba(0,0,0,0.15);
+    }
+    
+    /* Logs Section Styles */
+    .log-container {
+      background: rgba(255,255,255,0.8);
+      border-radius: 12px;
+      padding: 1.5rem;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+      backdrop-filter: blur(5px);
+    }
+    
+    .log-container h2 {
+      color: var(--primary);
+      margin-bottom: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    
+    #logList, #intruderList {
+      list-style: none;
+      max-height: 500px;
+      overflow-y: auto;
+    }
+    
+    #logList li, #intruderList li {
+      padding: 1rem;
+      border-bottom: 1px solid #eee;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      background: rgba(255,255,255,0.5);
+    }
+    
+    #logList li:last-child, #intruderList li:last-child {
+      border-bottom: none;
+    }
+    
+    /* Footer */
+    footer {
+      text-align: center;
+      padding: 1.5rem;
+      color: var(--dark);
+      margin-top: 2rem;
+      background: rgba(255,255,255,0.8);
+    }
+    
+    .social-links {
+      display: flex;
+      justify-content: center;
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+    
+    .social-links a {
+      color: var(--primary);
+      font-size: 1.5rem;
+      transition: all 0.3s ease;
+    }
+    
+    .social-links a:hover {
+      color: var(--secondary);
+      transform: translateY(-3px);
+    }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+      header {
+        flex-direction: column;
+        gap: 1rem;
+      }
+      
+      nav {
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+      
+      .hero h2 {
+        font-size: 2rem;
+      }
+      
+      .hero .slogan {
+        font-size: 1.2rem;
+      }
+      
+      .control-button {
+        width: 100%;
+        justify-content: center;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1><i class="fas fa-door-closed"></i> Smart Door</h1>
+    <nav>
+      <a onclick="showSection('home')" class="active"><i class="fas fa-home"></i> Home</a>
+      <a onclick="showSection('control')"><i class="fas fa-sliders-h"></i> Control</a>
+      <a onclick="showSection('logs')"><i class="fas fa-clipboard-list"></i> Logs</a>
+      <a onclick="showSection('intruders')"><i class="fas fa-shield-alt"></i> Intruders</a>
+      <a onclick="showSection('about')"><i class="fas fa-info-circle"></i> About</a>
+      <a onclick="showSection('contact')"><i class="fas fa-envelope"></i> Contact</a>
+    </nav>
+  </header>
+  
+  <!-- Enhanced Home Section -->
+  <section id="home" class="active">
+    <div class="hero">
+      <h2>Smart Door Security System</h2>
+      <div class="slogan">"Secure Your Space with Smart Technology"</div>
+      <p>
+        The most advanced smart door security system that combines cutting-edge technology with intuitive controls. 
+        Monitor, control, and protect your space from anywhere in the world.
+      </p>
+      
+      <div class="stats-container">
+        <div class="stat-item">
+          <div class="stat-value">24/7</div>
+          <div class="stat-label">Protection</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value">99.9%</div>
+          <div class="stat-label">Reliability</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value">100+</div>
+          <div class="stat-label">Happy Users</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value">5★</div>
+          <div class="stat-label">Rated</div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="dashboard-grid">
+      <div class="dashboard-card">
+        <div class="card-header">
+          <i class="fas fa-mobile-alt"></i>
+          <h3>Remote Control</h3>
+        </div>
+        <img src="https://images.unsplash.com/photo-1598128558393-70ff21433be0?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60" class="card-image" alt="Mobile control">
+        <p>Control your door from anywhere using our intuitive mobile app or web interface with real-time status updates.</p>
+      </div>
+      
+      <div class="dashboard-card">
+        <div class="card-header">
+          <i class="fas fa-bell"></i>
+          <h3>Instant Alerts</h3>
+        </div>
+        <img src="https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60" class="card-image" alt="Notifications">
+        <p>Receive immediate notifications for all access attempts, with photos and timestamps for complete awareness.</p>
+      </div>
+      
+      <div class="dashboard-card">
+        <div class="card-header">
+          <i class="fas fa-history"></i>
+          <h3>Access History</h3>
+        </div>
+        <img src="https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60" class="card-image" alt="Activity logs">
+        <p>Comprehensive logs of all door activities with searchable records and export capabilities.</p>
+      </div>
+    </div>
+  </section>
+  
+  <!-- Control Section -->
+  <section id="control">
+    <div class="control-section">
+      <h2><i class="fas fa-door-open"></i> Door Control</h2>
+      <button class="control-button open" onclick="openDoor()">
+        <i class="fas fa-door-open"></i> Open Door
+      </button>
+      <button class="control-button close" onclick="closeDoor()">
+        <i class="fas fa-door-closed"></i> Close Door
+      </button>
+    </div>
+  </section>
+  
+  <!-- Logs Section -->
+  <section id="logs">
+    <div class="log-container">
+      <h2><i class="fas fa-clipboard-list"></i> Login Logs</h2>
+      <ul id="logList"></ul>
+    </div>
+  </section>
+  
+  <!-- Intruders Section -->
+  <section id="intruders">
+    <div class="log-container">
+      <h2><i class="fas fa-shield-alt"></i> Intruder Alerts</h2>
+<h3>Latest Intruder Image</h3>
+<img id="intruderImg" width="300" style="border:2px solid #00bcd4; border-radius:8px; box-shadow:0 0 8px #00bcd4;">
+<ul id="intruderList" style="max-height:300px; overflow-y:auto; background:#222; padding:10px; border-radius:5px;"></ul>
+<script>
+  function updateIntruderImg() {
+    fetch('/intruder-url')
+      .then(res => res.text())
+      .then(url => {
+        if (url && url.startsWith("http")) {
+          document.getElementById('intruderImg').src = url + "&" + new Date().getTime(); // prevent cache
+        }
+      });
+  }
+  setInterval(updateIntruderImg, 5000);
+  window.onload = updateIntruderImg;
+</script>
+    </div>
+  </section>
+  
+  <!-- New About Section -->
+  <section id="about">
+    <div class="about-content">
+      <h2><i class="fas fa-info-circle"></i> About Our System</h2>
+      <p>The Smart Door Security System was developed with one goal in mind - to provide affordable, reliable, and easy-to-use security for homes and businesses. Our system combines state-of-the-art hardware with intuitive software to give you complete control over your door security.</p>
+      
+      <h3 style="margin-top: 2rem; color: var(--primary);">Key Features:</h3>
+      <ul style="margin: 1rem 0 2rem 1.5rem;">
+        <li style="margin-bottom: 0.5rem;">Remote door control from anywhere</li>
+        <li style="margin-bottom: 0.5rem;">Real-time access notifications</li>
+        <li style="margin-bottom: 0.5rem;">Comprehensive activity logs</li>
+        <li style="margin-bottom: 0.5rem;">Intruder detection with photo capture</li>
+        <li style="margin-bottom: 0.5rem;">Multi-user access management</li>
+      </ul>
+      
+      <h3 style="margin-top: 2rem; color: var(--primary);">Our Team</h3>
+      <div class="team-grid">
+        <div class="team-member">
+          <img src="https://i.postimg.cc/SK4kdbW2/boo.jpg" alt="Team Member">
+          <h4>Prashant Joshi</h4>
+          <p>Lead Developer</p>
+        </div>
+        <div class="team-member">
+          <img src="https://i.postimg.cc/fyVNyzhF/kushal.jpg" alt="Team Member">
+          <h4>Kushal Sapkota</h4>
+          <p>Hardware Engineer</p>
+        </div>
+      
+      </div>
+    </div>
+  </section>
+  
+  <!-- New Contact Section -->
+  <section id="contact">
+    <div class="contact-form">
+      <h2><i class="fas fa-envelope"></i> Contact Us</h2>
+      <form>
+        <div class="form-group">
+          <label for="name">Your Name</label>
+          <input type="text" id="name" placeholder="Enter your name">
+        </div>
+        <div class="form-group">
+          <label for="email">Email Address</label>
+          <input type="email" id="email" placeholder="Enter your email">
+        </div>
+        <div class="form-group">
+          <label for="subject">Subject</label>
+          <input type="text" id="subject" placeholder="Subject of your message">
+        </div>
+        <div class="form-group">
+          <label for="message">Message</label>
+          <textarea id="message" placeholder="Your message here..."></textarea>
+        </div>
+        <button type="submit" class="submit-btn">Send Message</button>
+      </form>
+    </div>
+  </section>
+  
+  <footer>
+    &copy; 2025 Smart Door System. All rights reserved.
+    <div class="social-links">
+      <a href="#"><i class="fab fa-facebook"></i></a>
+      <a href="#"><i class="fab fa-twitter"></i></a>
+      <a href="#"><i class="fab fa-instagram"></i></a>
+      <a href="#"><i class="fab fa-linkedin"></i></a>
+    </div>
+  </footer>
 
-// Firebase Realtime Database URL (no trailing slash)
-const char* FIREBASE_URL = "https://smart-door-3e8cc-default-rtdb.firebaseio.com";
-
-// WiFi creds
-const char* ssid = "Smriti";
-const char* password = "Apple101";
-
-// Mailjet creds
-const char* mailjet_api_key = "4d59f9156740617c21649698c999c786";
-const char* mailjet_api_secret = "b9b0bc9e2a3745c5295d116ae4a273f4";
-const char* mailjet_from = "prashantzoce123@gmail.com";
-const char* mailjet_to = "prashantzoce123@gmail.com";
-
-const char* IMGBB_API_KEY = "417b2f643568e43ebba03a0641cf1608";
-String latestImgbbUrl = "";
-
-
-// Pins
-#define GREEN_LED 2
-#define RED_LED 4
-#define BUZZER_TRIGGER_OUTPUT 10
-#define motorPin1 38
-#define motorPin2 39
-#define motorPin3 40
-#define motorPin4 41
-const int stepsFor120Degrees = 1365;
-
-HardwareSerial mySerial(1);
-Adafruit_Fingerprint finger(&mySerial);
-
-const int stepSequence[8][4] = {
-  {1,0,0,0}, {1,1,0,0}, {0,1,0,0}, {0,1,1,0},
-  {0,0,1,0}, {0,0,1,1}, {0,0,0,1}, {1,0,0,1}
+  
+  <script>
+   // Initialize Firebase
+const firebaseConfig = {
+  apiKey: "AIzaSyC_SVU9ICYz5UQ0I4MoDKDFfu8bbMIWct0",
+  authDomain: "smart-door-3e8cc.firebaseapp.com",
+  databaseURL: "https://smart-door-3e8cc-default-rtdb.firebaseio.com",
+  projectId: "smart-door-3e8cc",
+  storageBucket: "smart-door-3e8cc.appspot.com",
+  messagingSenderId: "306404588739",
+  appId: "1:306404588739:web:94170ac04fa8560e4b3676"
 };
 
-WebServer server(80);
-#define MAX_LOGS 20
-String logs[MAX_LOGS];
-int logCount = 0;
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
 
-void addLog(const String &entry) {
-  if (logCount < MAX_LOGS) logs[logCount++] = entry;
-  else {
-    for (int i = 1; i < MAX_LOGS; i++) logs[i-1] = logs[i];
-    logs[MAX_LOGS - 1] = entry;
-  }
-}
 
-String getTimeStamp() {
-  time_t now; time(&now);
-  struct tm t; localtime_r(&now, &t);
-  char buf[20];
-  strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", &t);
-  return String(buf);
-}
-
-void sendToFirebase(const String& logEntry) {
-  if (WiFi.status() != WL_CONNECTED) return;
-
-  HTTPClient http;
-  String endpoint = String(FIREBASE_URL) + "/logs.json";
-  http.begin(endpoint);
-  http.addHeader("Content-Type", "application/json");
-
-  String payload = "{\"log\":\"" + logEntry + "\"}";
-  int code = http.POST(payload);
-  Serial.println("Firebase code: " + String(code));
-  http.end();
-}
-
-void sendMailjet(const String &subject, const String &text) {
-  if (WiFi.status() != WL_CONNECTED) return;
-
-  HTTPClient http;
-  http.begin("https://api.mailjet.com/v3.1/send");
-  http.addHeader("Content-Type", "application/json");
-
-  String auth = String(mailjet_api_key) + ":" + mailjet_api_secret;
-  String h = "Basic " + base64::encode(auth);
-  http.addHeader("Authorization", h);
-
-  String j =
-    "{\"Messages\":[{\"From\":{\"Email\":\"" + String(mailjet_from) +
-    "\"},\"To\":[{\"Email\":\"" + String(mailjet_to) +
-    "\"}],\"Subject\":\"" + subject +
-    "\",\"TextPart\":\"" + text + "\"}]}";
-
-  int code = http.POST(j);
-  Serial.println("Mailjet code: " + String(code));
-  http.end();
-}
-bool uploadToImgBB(const String& imagePath) {
-  File imageFile = SPIFFS.open(imagePath, "r");
-  if (!imageFile) {
-    Serial.println("❌ Failed to open image for upload");
-    return false;
-  }
-  String base64Image = "";
-  uint8_t buf[512];
-  while (imageFile.available()) {
-    size_t len = imageFile.read(buf, sizeof(buf));
-    base64Image += base64::encode(buf, len);
-  }
-  imageFile.close();
-  HTTPClient http;
-  String endpoint = "https://api.imgbb.com/1/upload?key=" + String(IMGBB_API_KEY);
-  http.begin(endpoint);
-  http.addHeader("Content-Type", "application/x-www-form-urlencoded");
-  String payload = "image=" + base64Image;
-  int httpCode = http.POST(payload);
-  String response = http.getString();
-  Serial.println("🟡 imgbb upload code: " + String(httpCode));
-  if (httpCode == 200) {
-    int start = response.indexOf("\"url\":\"") + 7;
-    int end = response.indexOf("\"", start);
-    latestImgbbUrl = response.substring(start, end);
-    Serial.println("✅ Uploaded to imgbb: " + latestImgbbUrl);
-    return true;
-  }
-  Serial.println("❌ Upload failed: " + response);
-  return false;
-}
-
-void handleIntruderImageURL() {
-  server.sendHeader("Access-Control-Allow-Origin", "*");
-  server.send(200, "text/plain", latestImgbbUrl);
-}
-int getFingerprintID() {
-  if (finger.getImage() != FINGERPRINT_OK) return -1;
-  if (finger.image2Tz() != FINGERPRINT_OK) return -1;
-  if (finger.fingerSearch() == FINGERPRINT_OK) return finger.fingerID;
-  return -1;
-}
-
-void stepMotor(int step) {
-  digitalWrite(motorPin1, stepSequence[step][0]);
-  digitalWrite(motorPin2, stepSequence[step][1]);
-  digitalWrite(motorPin3, stepSequence[step][2]);
-  digitalWrite(motorPin4, stepSequence[step][3]);
-}
-
-void rotateMotorForward(int steps) {
-  int stepIndex = 0;
-  for (int i = 0; i < steps; i++) {
-    stepMotor(stepIndex);
-    stepIndex = (stepIndex + 1) % 8;
-    delay(5);
-  }
-  digitalWrite(motorPin1, LOW); digitalWrite(motorPin2, LOW);
-  digitalWrite(motorPin3, LOW); digitalWrite(motorPin4, LOW);
-}
-
-void rotateMotorBackward(int steps) {
-  int stepIndex = 0;
-  for (int i = 0; i < steps; i++) {
-    stepMotor(stepIndex);
-    stepIndex = (stepIndex + 7) % 8;
-    delay(5);
-  }
-  digitalWrite(motorPin1, LOW); digitalWrite(motorPin2, LOW);
-  digitalWrite(motorPin3, LOW); digitalWrite(motorPin4, LOW);
-}
-
-bool doorIsOpen = false;
-
-void openDoor() {
-  if (!doorIsOpen) {
-    rotateMotorForward(stepsFor120Degrees);
-    doorIsOpen = true;
-    Serial.println("Door opened");
-  }
-}
-
-void closeDoor() {
-  if (doorIsOpen) {
-    rotateMotorBackward(stepsFor120Degrees);
-    doorIsOpen = false;
-    Serial.println("Door closed");
-  }
-}
-void checkFirebaseCommand() {
-  if (WiFi.status() != WL_CONNECTED) return;
-
-  HTTPClient http;
-  http.begin(String(FIREBASE_URL) + "/commands/state.json");
-  int httpCode = http.GET();
-
-  if (httpCode == 200) {
-    String payload = http.getString();
-    payload.trim();
-    payload.replace("\"", "");
-
-    if (payload == "open" && !doorIsOpen) {
-      openDoor();
-      sendToFirebase(getTimeStamp() + " Door Opened via Firebase");
-    } else if (payload == "close" && doorIsOpen) {
-      closeDoor();
-      sendToFirebase(getTimeStamp() + " Door Closed via Firebase");
+     function showSection(id, event) {
+      document.querySelectorAll("section").forEach(s => s.classList.remove("active"));
+      document.getElementById(id).classList.add("active");
+      document.querySelectorAll("nav a").forEach(a => a.classList.remove("active"));
+      if (event) event.currentTarget.classList.add("active");
     }
 
-    // Clear state back to idle
-    HTTPClient httpClear;
-    httpClear.begin(String(FIREBASE_URL) + "/commands.json");
-    httpClear.addHeader("Content-Type", "application/json");
-    httpClear.sendRequest("PUT", "{\"state\":\"idle\"}");
-    httpClear.end();
-  }
+    function openDoor() {
+      db.ref("commands").set({ state: "open" });
+      alert("🚪 Open command sent to door!");
+    }
 
-  http.end();
-}
+    function closeDoor() {
+      db.ref("commands").set({ state: "close" });
+      alert("🔒 Close command sent to door!");
+    }
 
+    function fetchFirebaseLogs() {
+      db.ref("logs").on("value", snapshot => {
+        const logs = snapshot.val();
+        let logListHTML = "";
+        let intruderHTML = "";
 
+        for (let key in logs) {
+        const log = logs[key].log;
+        const timestamp = logs[key].timestamp || Date.now();
 
-void handleLogs() {
-  String js = "var L=[";
-  for (int i = 0; i < logCount; i++) {
-    js += "\"" + logs[i] + "\"";
-    if (i < logCount - 1) js += ",";
-  }
-  js += "];";
-  js += "var out='';L.forEach(l=>out+='<li>'+l+'</li>');";
-  js += "document.getElementById('logList').innerHTML=out;";
-  js += "var intr=L.filter(l=>l.indexOf('Denied')>=0);";
-  js += "var out2='';intr.forEach(i=>out2+='<li>'+i+'</li>');";
-    js += "fetch('/intruder-url').then(r=>r.text()).then(u=>document.getElementById('intruderImg').src=u+'&'+Date.now());";
+        const torontoTime = new Date(timestamp).toLocaleString("en-CA", {
+          timeZone: "America/Toronto",
+          year: 'numeric', month: 'short', day: 'numeric',
+          hour: '2-digit', minute: '2-digit', second: '2-digit'
+        });
 
-  js += "document.getElementById('intruderList').innerHTML=out2;";
-  server.sendHeader("Access-Control-Allow-Origin", "*");
-  server.send(200, "application/javascript", js);
-}
-
-void setup() {
-  Serial.begin(115200);
-  Wire.begin(8, 9);
-
-  pinMode(GREEN_LED, OUTPUT);
-  pinMode(RED_LED, OUTPUT);
-  pinMode(BUZZER_TRIGGER_OUTPUT, OUTPUT);
-  pinMode(motorPin1, OUTPUT); pinMode(motorPin2, OUTPUT);
-  pinMode(motorPin3, OUTPUT); pinMode(motorPin4, OUTPUT);
-
-  display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS);
-  display.clearDisplay(); display.setTextColor(SSD1306_WHITE);
-
-  mySerial.begin(57600, SERIAL_8N1, 16, 17);
-  finger.begin(57600);
-  if (!finger.verifyPassword()) {
-    display.println("Finger error"); display.display(); while (1);
-  }
-
-  WiFi.begin(ssid, password);
-  display.setCursor(0, 0); display.println("WiFi connecting..."); display.display();
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500); display.print("."); display.display();
-  }
-
-  configTime(0, 0, "pool.ntp.org");
-
-  display.clearDisplay();
-  display.setCursor(0, 0);
-  display.println("WiFi Connected!");
-  display.println("IP:");
-  display.println(WiFi.localIP());
-  display.display();
-
-  Serial.print("ESP32 IP: "); Serial.println(WiFi.localIP());
- camera_config_t config;
-  config.ledc_channel = LEDC_CHANNEL_0;
-  config.ledc_timer = LEDC_TIMER_0;
-  config.pin_d0 = 11;
-  config.pin_d1 = 9;
-  config.pin_d2 = 8;
-  config.pin_d3 = 10;
-  config.pin_d4 = 12;
-  config.pin_d5 = 18;
-  config.pin_d6 = 17;
-  config.pin_d7 = 16;
-  config.pin_xclk = 15;
-  config.pin_pclk = 13;
-  config.pin_vsync = 6;
-  config.pin_href = 7;
-  config.pin_sscb_sda = 4;
-  config.pin_sscb_scl = 5;
-  config.pin_pwdn = -1;
-  config.pin_reset = -1;
-  config.xclk_freq_hz = 20000000;
-  config.pixel_format = PIXFORMAT_JPEG;
-  config.frame_size = FRAMESIZE_QVGA;
-  config.jpeg_quality = 10;
-  config.fb_count = 1;
-
-  esp_err_t err = esp_camera_init(&config);
-  if (err != ESP_OK) {
-    Serial.printf("Camera init failed 0x%x", err);
-    while (1);
-  }
-  server.on("/", [] { server.send(200, "text/plain", "Smart Door System"); });
-  server.on("/logs.js", handleLogs);
-  server.on("/open-door", [] { openDoor(); server.send(200, "text/plain", "Door opened"); });
-  server.on("/close-door", [] { closeDoor(); server.send(200, "text/plain", "Door closed"); });
-  server.begin(); Serial.println("Server started");
-}
-
-void loop() {
-  server.handleClient();
-
-  display.clearDisplay();
-  display.setCursor(0, 0);
-  display.println("👉 Place Finger");
-  display.display();
-  delay(1000);
-
-  int id = getFingerprintID();
-  String ts = getTimeStamp();
-  String entry;
-
-  if (id >= 0) {
-    entry = ts + " Granted: ID " + id;
-    addLog(entry);
-    sendToFirebase(entry);
-
-    display.clearDisplay();
-    display.println("Access Granted"); display.print("ID: "); display.println(id); display.display();
-    digitalWrite(GREEN_LED, HIGH); digitalWrite(RED_LED, LOW);
-    openDoor(); delay(3000); closeDoor(); digitalWrite(GREEN_LED, LOW);
-  } else {
-    entry = ts + " Denied";
-    addLog(entry);
-    sendToFirebase(entry);
-
-    display.clearDisplay();
-    display.println("Access Denied"); display.display();
-    digitalWrite(RED_LED, HIGH); digitalWrite(GREEN_LED, LOW);
-    digitalWrite(BUZZER_TRIGGER_OUTPUT, HIGH); delay(1000);
-    digitalWrite(BUZZER_TRIGGER_OUTPUT, LOW); delay(1000); digitalWrite(RED_LED, LOW);
-    camera_fb_t* fb = esp_camera_fb_get();
-    if (fb) {
-      File f = SPIFFS.open("/intruder.jpg", FILE_WRITE);
-      if (f) {
-        f.write(fb->buf, fb->len);
-        f.close();
-        uploadToImgBB("/intruder.jpg");
+        const itemHTML = `<li>${log}<br><small>${torontoTime}</small></li>`;
+        logListHTML += itemHTML;
+        if (log.includes("Denied")) intruderHTML += itemHTML;
       }
-      esp_camera_fb_return(fb);
+
+        document.getElementById("logList").innerHTML = logListHTML;
+        document.getElementById("intruderList").innerHTML = intruderHTML;
+      });
     }
-    sendMailjet("Unauthorized Access", entry);
-  }
 
-checkFirebaseCommand();
+    document.querySelector('form')?.addEventListener('submit', function(e) {
+      e.preventDefault();
+      alert('Thank you for your message! We will contact you soon.');
+      this.reset();
+    });
 
-  delay(1000);
-}
+    window.onload = fetchFirebaseLogs;
+  </script>
+
+</body>
+</html>
