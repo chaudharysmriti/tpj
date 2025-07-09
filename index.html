@@ -549,14 +549,16 @@
 <ul id="intruderList" style="max-height:300px; overflow-y:auto; background:#222; padding:10px; border-radius:5px;"></ul>
 <script>
   function updateIntruderImg() {
-    fetch('/intruder-url')
-      .then(res => res.text())
-      .then(url => {
-        if (url && url.startsWith("http")) {
-          document.getElementById('intruderImg').src = url + "&" + new Date().getTime(); // prevent cache
+    fetch('/intruder.jpg')
+      .then(response => {
+        if (response.ok) {
+          document.getElementById('intruderImg').src = '/intruder.jpg?' + new Date().getTime(); // prevent caching
+        } else {
+          document.getElementById('intruderImg').src = '';
         }
       });
   }
+
   setInterval(updateIntruderImg, 5000);
   window.onload = updateIntruderImg;
 </script>
