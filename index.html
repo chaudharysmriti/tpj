@@ -545,23 +545,14 @@
     <div class="log-container">
       <h2><i class="fas fa-shield-alt"></i> Intruder Alerts</h2>
 <h3>Latest Intruder Image</h3>
-<img id="intruderImg" width="300" style="border:2px solid #00bcd4; border-radius:8px; box-shadow:0 0 8px #00bcd4;">
-<ul id="intruderList" style="max-height:300px; overflow-y:auto; background:#222; padding:10px; border-radius:5px;"></ul>
-<script>
-  function updateIntruderImg() {
-    fetch('/intruder.jpg')
-      .then(response => {
-        if (response.ok) {
-          document.getElementById('intruderImg').src = '/intruder.jpg?' + new Date().getTime(); // prevent caching
-        } else {
-          document.getElementById('intruderImg').src = '';
-        }
-      });
-  }
+<div style="text-align:center;">
+  <img id="intruderImg" width="300" style="border:2px solid #00bcd4; border-radius:8px; box-shadow:0 0 8px #00bcd4;">
+  <p id="intruderTimestamp" style="color:#444; margin-top:10px; font-weight:600;"></p>
+</div>
 
-  setInterval(updateIntruderImg, 5000);
-  window.onload = updateIntruderImg;
-</script>
+<ul id="intruderList" style="max-height:300px; overflow-y:auto; background:#222; padding:10px; border-radius:5px;"></ul>
+
+
     </div>
   </section>
   
@@ -685,7 +676,13 @@ const db = firebase.database();
 
         const itemHTML = `<li>${log}<br><small>${torontoTime}</small></li>`;
         logListHTML += itemHTML;
-        if (log.includes("Denied")) intruderHTML += itemHTML;
+if (log.includes("Denied")) {
+  intruderHTML += itemHTML;
+
+  // Update image and timestamp from the latest denial log
+  document.getElementById('intruderImg').src = '/intruder.jpg?' + new Date().getTime();
+  document.getElementById('intruderTimestamp').innerText = "📸 Captured at: " + torontoTime;
+}
       }
 
         document.getElementById("logList").innerHTML = logListHTML;
