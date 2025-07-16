@@ -651,12 +651,14 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
 
-     function showSection(id, event) {
-      document.querySelectorAll("section").forEach(s => s.classList.remove("active"));
-      document.getElementById(id).classList.add("active");
-      document.querySelectorAll("nav a").forEach(a => a.classList.remove("active"));
-      if (event) event.currentTarget.classList.add("active");
-    }
+     function showSection(id, event = null) {
+  document.querySelectorAll("section").forEach(s => s.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+  document.querySelectorAll("nav a").forEach(a => a.classList.remove("active"));
+  if (event && event.currentTarget) {
+    event.currentTarget.classList.add("active");
+  }
+}
 
     function openDoor() {
       db.ref("commands").set({ state: "open" });
