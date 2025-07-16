@@ -550,19 +550,28 @@
   </a>
 </p>
 
+<!-- Live Stream Heading + Link -->
 <h3>Live Intruder Camera Feed</h3>
+<a href="http://172.20.10.13/custom" target="_blank" style="font-weight:bold; color: #1a73e8; text-decoration: underline;">
+  📎 View Live ESP32-CAM Stream
+</a>
 
-<div style="text-align:center; margin-bottom: 1rem;">
-  <!-- Livestream IFRAME -->
-  <iframe src="http://172.20.10.13/custom"
-          width="320"
-          height="240"
-          style="border: 2px solid #00bcd4; border-radius: 8px; box-shadow: 0 0 8px #00bcd4;">
+<!-- Livestream Box -->
+<div style="margin-top: 10px; display: flex; justify-content: center;">
+  <iframe
+    src="http://172.20.10.13/custom"
+    width="320"
+    height="240"
+    allow="camera *; microphone *"
+    frameborder="0"
+    style="border: 2px solid #00bcd4; border-radius: 8px; box-shadow: 0 0 8px #00bcd4;">
   </iframe>
-
-  <!-- Timestamp -->
-  <p id="liveTime" style="color:#444; margin-top:10px; font-weight:600;"></p>
 </div>
+
+<!-- Timestamp -->
+<p style="text-align: center; margin-top: 8px; font-weight: 500; color: #444;" id="liveTime">
+  ⏲️ Live Feed as of: --
+</p>
 
 
 <ul id="intruderList" style="max-height:300px; overflow-y:auto; background:#222; padding:10px; border-radius:5px;"></ul>
