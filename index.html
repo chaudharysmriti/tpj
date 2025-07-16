@@ -543,22 +543,7 @@
   <section id="intruders">
     <div class="log-container">
       <h2><i class="fas fa-shield-alt"></i> Intruder Alerts</h2>
-<h3>Latest Intruder Image</h3>
-<img id="intruderImg" width="300" style="border:2px solid #00bcd4; border-radius:8px; box-shadow:0 0 8px #00bcd4;">
-<ul id="intruderList" style="max-height:300px; overflow-y:auto; background:#222; padding:10px; border-radius:5px;"></ul>
-<script>
-  function updateIntruderImg() {
-    fetch('/intruder-url')
-      .then(res => res.text())
-      .then(url => {
-        if (url && url.startsWith("http")) {
-          document.getElementById('intruderImg').src = url + "&" + new Date().getTime(); // prevent cache
-        }
-      });
-  }
-  setInterval(updateIntruderImg, 5000);
-  window.onload = updateIntruderImg;
-</script>
+      <ul id="intruderList"></ul>
     </div>
   </section>
   
@@ -589,7 +574,7 @@
           <h4>Kushal Sapkota</h4>
           <p>Hardware Engineer</p>
         </div>
-      
+        
       </div>
     </div>
   </section>
