@@ -680,7 +680,7 @@ if (log.includes("Denied")) {
   intruderHTML += itemHTML;
 
   // Update image and timestamp from the latest denial log
-const camIP = "http://192.168.x.x";  // <-- Replace with your ESP32-CAM IP
+const camIP = "http://172.20.10.13/custom";  // <-- Replace with your ESP32-CAM IP
 document.getElementById('intruderImg').src = `${camIP}/intruder.jpg?t=${new Date().getTime()}`;
   document.getElementById('intruderTimestamp').innerText = "📸 Captured at: " + torontoTime;
 }
